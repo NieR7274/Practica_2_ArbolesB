@@ -7,7 +7,7 @@ public  class Btree {
 
      class Vertice{
 
-        int n; //numero de llaves que se tienen actualmete
+        int n = 0; //numero de llaves que se tienen actualmete
 
          int[] llaves = new int[m]; //llaves guardadas
 
@@ -29,18 +29,78 @@ public  class Btree {
         raiz = null;
     }
 
-    public  void insertar(int n){}
+    public  void insertar(int n){
+
+        if (raiz == null){
+            raiz = new Vertice(0);
+        }
+
+        insertar(n, raiz);
+
+
+    }
+
+    public void insertar(int n, Vertice v){
+
+        for (int i = 0; i < v.n; i++){ //se comprueba si la llave ya existe
+
+            if (n==v.llaves[i]){
+                return; //la llave ya existe
+            }
+            else if (n<v.llaves[i]){ //si la llave es menor que la llave en el nodo actual, se inserta en el hijo correspondiente
+                if (v.esHoja){
+                    //insertar en el nodo actual
+                    for (int j = v.n; j > i; j--){ //v.n empiiza a contar en 1 e i en 0 por lo es correcto 
+                        v.llaves[j] = v.llaves[j-1];
+                    }
+                    v.llaves[i] = n;
+                    v.n++;
+                    return;
+                } else {
+                    insertar(n, v.hijos[i]);
+                    return;
+                }
+            }
+        }
+
+        if (v.esHoja){ //si la llave es mayor que todas las llaves en el nodo actual, se inserta en el hijo correspondiente
+            v.llaves[v.n] = n;
+            v.n++;
+            return;
+        } else {
+            insertar(n, v.hijos[v.n]);
+            return;
+        }
+
+        
+
+
+    }
+
+    
 
     public  void eliminar(int n){}
 
     public boolean buscar(int n) {
-    return buscar(n, raiz);
+
+    if (raiz == null) {
+        return false; // Árbol vacío
+    }
+
+    boolean encontrado = false;
+
+    if  (buscar(n , raiz) !=null) {
+        encontrado = true;
+    } else {
+        encontrado = false;
+    }
+    return encontrado;
 }
 
-    public boolean buscar(int n, Vertice v) {
+    public Vertice buscar(int n, Vertice v) {
         // 1. Caso base: si el nodo es nulo (árbol vacío o hijo inexistente)
         if (v == null) {
-            return false; 
+            return null; 
         }
 
         int i = 0;
@@ -50,13 +110,13 @@ public  class Btree {
 
             // Si encontramos la llave en este nodo
             if (n == v.llaves[i]) {
-                return true; 
+                return v; 
             } 
             
             // Si el valor buscado es menor, pertenece al intervalo del hijo i
             if (n < v.llaves[i]) {
                 if (v.esHoja) {
-                    return false; // Si es hoja y no estaba, no existe[cite: 1]
+                    return null; // Si es hoja y no estaba, no existe[cite: 1]
                 } else {
                     return buscar(n, v.hijos[i]); // Seguir por el hijo i[cite: 1]
                 }
@@ -66,7 +126,7 @@ public  class Btree {
         // 3. Si 'n' es mayor que TODAS las llaves del nodo:
         // Debemos revisar el último hijo 
         if (v.esHoja) {
-            return false;
+            return null;
         } else {
             return buscar(n, v.hijos[i]); // 'i' aquí vale exactamente 'v.n'[cite: 1]
         }
