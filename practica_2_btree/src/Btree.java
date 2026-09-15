@@ -36,6 +36,7 @@ public class Btree {
     }
 
     public void insertar(int n, Vertice v){
+
         for (int i = 0; i < v.n; i++){ //se comprueba si la llave ya existe
             if (n == v.llaves[i]){
                 return; //la llave ya existe
@@ -77,7 +78,9 @@ public class Btree {
     }
 
     public void split(Vertice v){
-        int mid = v.n / 2; //indice de la llave mediana (para m=4, mid=2, que es la 3era llave)
+
+        //indice de la llave mediana, usamos division entera para asegurar indices exactos en el desbordamiento (5 / 2 = 2)
+        int mid = v.n / 2; 
         int llavePromovida = v.llaves[mid];
 
         Vertice nuevo = new Vertice(0); //nuevo nodo
@@ -143,7 +146,202 @@ public class Btree {
         }
     }
 
-    public void eliminar(int n){}
+    public void eliminar(int n){
+        if (raiz == null) return;
+        eliminar(n, raiz);
+
+        // 6. Tratar el caso especial de la raíz:
+        // Si la raíz queda sin claves y tiene un único hijo, ese hijo se convierte en la nueva raíz.
+        if (raiz.n == 0 && !raiz.esHoja) {
+            raiz = raiz.hijos[0];
+            raiz.padre = null;
+        } else if (raiz.n == 0 && raiz.esHoja) {
+            raiz = null; // Árbol quedó vacío
+        }
+    }
+
+    public void eliminar(int n, Vertice v){
+        int i = 0;
+        while (i < v.n && n > v.llaves[i]) {
+            i++;
+        }
+
+        // 1. Si encontramos la clave en el nodo actual 'v'
+        if (i < v.n && n == v.llaves[i]) {
+            if (v.esHoja) { 
+                // 2. Si es hoja se elimina la llave reacomodando las llaves
+                for (int j = i; j < v.n - 1; j++){
+                    v.llaves[j] = v.llaves[j+1];
+                }
+                v.n--;
+            } else {
+                // 3. Si no es hoja, se busca el predecesor o sucesor según las notas
+                Vertice hijoIzq = v.hijos[i];
+                Vertice hijoDer = v.hijos[i + 1];
+
+                if (hijoIzq.n > q) {
+                    // a) Si el hijo izquierdo contiene más de q claves, usamos el predecesor
+                    Vertice pred = hijoIzq;
+                    while (!pred.esHoja) {
+                        pred = pred.hijos[pred.n]; // El mayor del hijo izquierdo
+                    }
+                    int clavePred = pred.llaves[pred.n - 1];
+                    v.llaves[i] = clavePred;
+                    eliminar(clavePred, hijoIzq);
+                } else if (hijoDer.n > q) {
+                    // b) Si el hijo derecho contiene más de q claves, usamos el sucesor
+                    Vertice suc = hijoDer;
+                    while (!suc.esHoja) {
+                        suc = suc.hijos[0]; // El menor del hijo derecho
+                    }
+                    int claveSuc = suc.llaves[0];
+                    v.llaves[i] = claveSuc;
+                    eliminar(claveSuc, hijoDer);
+                } else {
+                    // c) Si ninguno tiene más de q claves, fusionamos ambos hijos utilizando la clave actual
+                    fusionarHijosEnNodo(hijoIzq, hijoDer, i, v);
+                    eliminar(n, hijoIzq); // Continuar la eliminación en el nodo fusionado
+                }
+            }
+        } else {
+            // Si la clave no está en este nodo, descendemos por el hijo correspondiente
+            if (v.esHoja) {
+                return; // La clave no existe en el árbol
+            }
+            Vertice hijoDestino = v.hijos[i];
+            eliminar(n, hijoDestino);
+        }
+
+        // 4. Reparar subocupación (Underflow) si el nodo no es la raíz y tiene menos de q claves
+        if (v != raiz && v.n < q) {
+            repararSubocupacion(v);
+        }
+    }
+
+    // Método auxiliar para fusionar dos hijos y una clave del padre (paso 3c de las notas)
+    private void fusionarHijosEnNodo(Vertice hijoIzq, Vertice hijoDer, int indiceClavePadre, Vertice padre) {
+        // Traer la clave del padre al hijo izquierdo
+        hijoIzq.llaves[hijoIzq.n] = padre.llaves[indiceClavePadre];
+        hijoIzq.n++;
+
+        // Copiar las llaves del hijo derecho al hijo izquierdo
+        for (int j = 0; j < hijoDer.n; j++) {
+            hijoIzq.llaves[hijoIzq.n] = hijoDer.llaves[j];
+            hijoIzq.n++;
+        }
+
+        // Copiar los hijos del hijo derecho al hijo izquierdo (si no es hoja)
+        if (!hijoIzq.esHoja) {
+            for (int j = 0; j <= hijoDer.n; j++) {
+                hijoIzq.hijos[hijoIzq.n - hijoDer.n + j] = hijoDer.hijos[j];
+                if (hijoDer.hijos[j] != null) {
+                    hijoDer.hijos[j].padre = hijoIzq;
+                }
+            }
+        }
+
+        // Remover la clave y el apuntador del padre
+        for (int j = indiceClavePadre; j < padre.n - 1; j++) {
+            padre.llaves[j] = padre.llaves[j + 1];
+            padre.hijos[j + 1] = padre.hijos[j + 2];
+        }
+        padre.n--;
+        padre.hijos[padre.n + 1] = null;
+    }
+
+    // Método para reparar la subocupación (Paso 4 de las notas)
+    private void repararSubocupacion(Vertice v) {
+        Vertice padre = v.padre;
+        if (padre == null) return;
+
+        // Encontrar el índice del hijo v en el padre
+        int idxHijo = 0;
+        while (idxHijo <= padre.n && padre.hijos[idxHijo] != v) {
+            idxHijo++;
+        }
+
+        Vertice hermanoIzq = (idxHijo > 0) ? padre.hijos[idxHijo - 1] : null;
+        Vertice hermanoDer = (idxHijo < padre.n) ? padre.hijos[idxHijo + 1] : null;
+
+        // a) Redistribución con el hermano izquierdo si tiene más de q claves
+        if (hermanoIzq != null && hermanoIzq.n > q) {
+            // Mover espacio en v para la clave que baja del padre
+            for (int j = v.n; j > 0; j--) {
+                v.llaves[j] = v.llaves[j - 1];
+            }
+            if (!v.esHoja) {
+                for (int j = v.n + 1; j > 0; j--) {
+                    v.hijos[j] = v.hijos[j - 1];
+                }
+            }
+
+            v.llaves[0] = padre.llaves[idxHijo - 1]; // Baja clave del padre
+            padre.llaves[idxHijo - 1] = hermanoIzq.llaves[hermanoIzq.n - 1]; // Sube clave del hermano izq
+
+            if (!v.esHoja) {
+                v.hijos[0] = hermanoIzq.hijos[hermanoIzq.n];
+                if (v.hijos[0] != null) v.hijos[0].padre = v;
+                hermanoIzq.hijos[hermanoIzq.n] = null;
+            }
+
+            v.n++;
+            hermanoIzq.n--;
+        } 
+        // a) Redistribución con el hermano derecho si tiene más de q claves
+        else if (hermanoDer != null && hermanoDer.n > q) {
+            v.llaves[v.n] = padre.llaves[idxHijo]; // Baja clave del padre
+            padre.llaves[idxHijo] = hermanoDer.llaves[0]; // Sube clave del hermano der
+
+            if (!v.esHoja) {
+                v.hijos[v.n + 1] = hermanoDer.hijos[0];
+                if (v.hijos[v.n + 1] != null) v.hijos[v.n + 1].padre = v;
+                
+                // Corregir hijos del hermano derecho
+                for (int j = 0; j < hermanoDer.n; j++) {
+                    hermanoDer.hijos[j] = hermanoDer.hijos[j + 1];
+                }
+                hermanoDer.hijos[hermanoDer.n] = null;
+            }
+
+            // Reacomodar llaves del hermano derecho
+            for (int j = 0; j < hermanoDer.n - 1; j++) {
+                hermanoDer.llaves[j] = hermanoDer.llaves[j + 1];
+            }
+
+            v.n++;
+            hermanoDer.n--;
+        } 
+        // b) Fusión si ningún hermano puede ceder una clave
+        else {
+            if (hermanoIzq != null) {
+                fusionarHijosEnNodo(hermanoIzq, v, idxHijo - 1, padre);
+            } else if (hermanoDer != null) {
+                fusionarHijosEnNodo(v, hermanoDer, idxHijo, padre);
+            }
+        }
+    }
+
+    public void compartir(){}
+
+    public void fusionar(Vertice hermano1, Vertice hermano2, int llavePromovida){
+
+        Vertice padre = hermano1.padre;
+
+        if (padre == null){//si es la raiz se crea una nueva con dos hijos
+            Vertice nuevaRaiz = new Vertice(0);
+            nuevaRaiz.esHoja = false;
+            nuevaRaiz.llaves[0] = llavePromovida;
+            nuevaRaiz.n++;
+            nuevaRaiz.hijos[0] = hermano1;
+            nuevaRaiz.hijos[1] = hermano2;
+            hermano1.padre = nuevaRaiz;
+            hermano2.padre = nuevaRaiz;
+            raiz = nuevaRaiz;
+        }
+        else {
+            // Lógica general de fusión implementada mediante los métodos auxiliares
+        }
+    }
 
     public boolean buscar(int n) {
         if (raiz == null) {
