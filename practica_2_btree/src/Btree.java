@@ -1,3 +1,6 @@
+import java.util.LinkedList;
+import java.util.Queue;
+
 public class Btree {
 
     int m = 4; // maximo de hijos
@@ -5,19 +8,55 @@ public class Btree {
     int q = (int) Math.ceil((double) m / 2) - 1; // minimo de llaves de los hijos = 1
 
     class Vertice {
-        int n = 0; //numero de llaves que se tienen actualmete
-        int[] llaves = new int[m]; //llaves guardadas
-        Vertice[] hijos = new Vertice[r + 2]; //hijos maximmos, mas 2 en caso de de desbordamiento
-        Vertice padre; //padreS
-        boolean esHoja = true; //es hoja
+
+        int n = 0; // numero de llaves que se tienen actualmente
+        int[] llaves = new int[m]; // llaves guardadas
+        Vertice[] hijos = new Vertice[r + 2]; // hijos maximos, mas 2 en caso de desbordamiento
+        Vertice padre; // padre
+        boolean esHoja = true; // es hoja
 
         public Vertice(int n) {
             this.n = n;
         }
+
+        public String toString() {
+            String contenido = "[";
+
+            for (int i = 0; i < n; i++) {
+                contenido += llaves[i];
+                // Agregamos barra solo si no es la ultima llave
+                if (i < n - 1) {
+                    contenido += " | ";
+                }
+            }
+
+            contenido += "]";
+            return contenido;
+        }
     }
 
-    protected Vertice raiz; //raiz del arbol  
-    
+    class Level {
+        String[] Vertices;
+        int level;
+
+        public Level(String[] vertices){
+            this.Vertices = vertices;
+        }
+
+        public String toString(){ 
+            String viewLevel;
+            viewLevel = "Nivel: " + level + " =>";
+
+            for (int i = 0; i < Vertices.length; i++) {
+                viewLevel += " " + Vertices[i];
+            }
+
+            return viewLevel;
+        }
+    }
+
+    protected Vertice raiz; // raiz del arbol  
+   
     protected Btree(){
         raiz = null;
     }
@@ -37,19 +76,19 @@ public class Btree {
 
     public void insertar(int n, Vertice v){
 
-        for (int i = 0; i < v.n; i++){ //se comprueba si la llave ya existe
+        for (int i = 0; i < v.n; i++){ // se comprueba si la llave ya existe
             if (n == v.llaves[i]){
-                return; //la llave ya existe
+                return; // la llave ya existe
             }
-            else if (n < v.llaves[i]){ //si la llave es menor que la llave en el nodo actual, se inserta en el hijo correspondiente
+            else if (n < v.llaves[i]){ // si la llave es menor que la llave en el nodo actual, se inserta en el hijo correspondiente
                 if (v.esHoja){
-                    //insertar en el nodo actual
-                    for (int j = v.n; j > i; j--){ //v.n empiiza a contar en 1 e i en 0 por lo es correcto 
+                    // insertar en el nodo actual
+                    for (int j = v.n; j > i; j--){ // v.n empieza a contar en 1 e i en 0 por lo que es correcto
                         v.llaves[j] = v.llaves[j-1];
                     }
                     v.llaves[i] = n;
                     v.n++;
-                    
+                   
                     // Si el nodo se desborda, realizamos el split
                     if (v.n > r) {
                         split(v);
@@ -62,10 +101,10 @@ public class Btree {
             }
         }
 
-        if (v.esHoja){ //si la llave es mayor que todas las llaves en el nodo actual, se inserta en el hijo correspondiente
+        if (v.esHoja){ // si la llave es mayor que todas las llaves en el nodo actual, se inserta en el hijo correspondiente
             v.llaves[v.n] = n;
             v.n++;
-            
+           
             // Si el nodo se desborda, realizamos el split
             if (v.n > r) {
                 split(v);
@@ -79,21 +118,21 @@ public class Btree {
 
     public void split(Vertice v){
 
-        //indice de la llave mediana, usamos division entera para asegurar indices exactos en el desbordamiento (5 / 2 = 2)
-        int mid = v.n / 2; 
+        // indice de la llave mediana, usamos division entera para asegurar indices exactos en el desbordamiento (5 / 2 = 2)
+        int mid = v.n / 2;
         int llavePromovida = v.llaves[mid];
 
-        Vertice nuevo = new Vertice(0); //nuevo nodo
-        nuevo.esHoja = v.esHoja; //el nuevo nodo es hoja si el nodo actual es hoja
+        Vertice nuevo = new Vertice(0); // nuevo nodo
+        nuevo.esHoja = v.esHoja; // el nuevo nodo es hoja si el nodo actual es hoja
 
         // Se copian las llaves derechas del nodo actual al nuevo nodo (desde mid + 1)
-        for (int i = mid + 1; i < v.n; i++){ 
+        for (int i = mid + 1; i < v.n; i++){
             nuevo.llaves[nuevo.n] = v.llaves[i];
             nuevo.n++;
         }
 
         // Si el nodo actual no es hoja, se copian los hijos correspondientes al nuevo nodo
-        if (!v.esHoja){ 
+        if (!v.esHoja){
             for (int i = mid + 1; i <= v.n; i++){
                 nuevo.hijos[i - mid - 1] = v.hijos[i];
                 if (nuevo.hijos[i - mid - 1] != null){
@@ -104,9 +143,9 @@ public class Btree {
         }
 
         // Actualizamos el numero de llaves del nodo actual (se queda con las de la izquierda)
-        v.n = mid; 
+        v.n = mid;
 
-        if (v.padre == null){ //si el nodo actual es la raiz, se crea una nueva raiz
+        if (v.padre == null){ // si el nodo actual es la raiz, se crea una nueva raiz
             Vertice nuevaRaiz = new Vertice(0);
             nuevaRaiz.esHoja = false;
             nuevaRaiz.llaves[0] = llavePromovida;
@@ -116,9 +155,10 @@ public class Btree {
             v.padre = nuevaRaiz;
             nuevo.padre = nuevaRaiz;
             raiz = nuevaRaiz;
-        } else { //si el nodo actual no es la raiz, se inserta la llave mediana directamente en el padre
+        }
+        else { // si el nodo actual no es la raiz, se inserta la llave mediana directamente en el padre
             Vertice padre = v.padre;
-            
+           
             // Encontramos la posicion donde debe ir la llave mediana en el padre
             int i = 0;
             while (i < padre.n && llavePromovida > padre.llaves[i]) {
@@ -139,7 +179,7 @@ public class Btree {
             padre.hijos[i + 1] = nuevo;
             nuevo.padre = padre;
 
-            // Si el padre también se desborda, propagamos el split hacia arriba
+            // Si el padre tambien se desborda, propagamos el split hacia arriba
             if (padre.n > r) {
                 split(padre);
             }
@@ -150,16 +190,17 @@ public class Btree {
         if (raiz == null) return;
         eliminar(n, raiz);
 
-        // 6. Tratar el caso especial de la raíz:
-        // Si la raíz queda sin claves y tiene un único hijo, ese hijo se convierte en la nueva raíz.
+        // 6. Tratar el caso especial de la raiz:
+        // Si la raiz queda sin claves y tiene un unico hijo, ese hijo se convierte en la nueva raiz.
         if (raiz.n == 0 && !raiz.esHoja) {
             raiz = raiz.hijos[0];
             raiz.padre = null;
         } else if (raiz.n == 0 && raiz.esHoja) {
-            raiz = null; // Árbol quedó vacío
+            raiz = null; // Arbol quedo vacio
         }
     }
 
+    // basado en las notas del 3 de septiembre
     public void eliminar(int n, Vertice v){
         int i = 0;
         while (i < v.n && n > v.llaves[i]) {
@@ -168,19 +209,19 @@ public class Btree {
 
         // 1. Si encontramos la clave en el nodo actual 'v'
         if (i < v.n && n == v.llaves[i]) {
-            if (v.esHoja) { 
+            if (v.esHoja) {
                 // 2. Si es hoja se elimina la llave reacomodando las llaves
                 for (int j = i; j < v.n - 1; j++){
                     v.llaves[j] = v.llaves[j+1];
                 }
                 v.n--;
             } else {
-                // 3. Si no es hoja, se busca el predecesor o sucesor según las notas
+                // 3. Si no es hoja, se busca el predecesor o sucesor segun las notas
                 Vertice hijoIzq = v.hijos[i];
                 Vertice hijoDer = v.hijos[i + 1];
 
                 if (hijoIzq.n > q) {
-                    // a) Si el hijo izquierdo contiene más de q claves, usamos el predecesor
+                    // a) Si el hijo izquierdo contiene mas de q claves, usamos el predecesor
                     Vertice pred = hijoIzq;
                     while (!pred.esHoja) {
                         pred = pred.hijos[pred.n]; // El mayor del hijo izquierdo
@@ -189,7 +230,7 @@ public class Btree {
                     v.llaves[i] = clavePred;
                     eliminar(clavePred, hijoIzq);
                 } else if (hijoDer.n > q) {
-                    // b) Si el hijo derecho contiene más de q claves, usamos el sucesor
+                    // b) Si el hijo derecho contiene mas de q claves, usamos el sucesor
                     Vertice suc = hijoDer;
                     while (!suc.esHoja) {
                         suc = suc.hijos[0]; // El menor del hijo derecho
@@ -198,27 +239,27 @@ public class Btree {
                     v.llaves[i] = claveSuc;
                     eliminar(claveSuc, hijoDer);
                 } else {
-                    // c) Si ninguno tiene más de q claves, fusionamos ambos hijos utilizando la clave actual
+                    // c) Si ninguno tiene mas de q claves, fusionamos ambos hijos utilizando la clave actual
                     fusionarHijosEnNodo(hijoIzq, hijoDer, i, v);
-                    eliminar(n, hijoIzq); // Continuar la eliminación en el nodo fusionado
+                    eliminar(n, hijoIzq); // Continuar la eliminacion en el nodo fusionado
                 }
             }
         } else {
-            // Si la clave no está en este nodo, descendemos por el hijo correspondiente
+            // Si la clave no esta en este nodo, descendemos por el hijo correspondiente
             if (v.esHoja) {
-                return; // La clave no existe en el árbol
+                return; // La clave no existe en el arbol
             }
             Vertice hijoDestino = v.hijos[i];
             eliminar(n, hijoDestino);
         }
 
-        // 4. Reparar subocupación (Underflow) si el nodo no es la raíz y tiene menos de q claves
+        // 4. Reparar subocupacion (Underflow) si el nodo no es la raiz y tiene menos de q claves
         if (v != raiz && v.n < q) {
             repararSubocupacion(v);
         }
     }
 
-    // Método auxiliar para fusionar dos hijos y una clave del padre (paso 3c de las notas)
+    // Metodo auxiliar para fusionar dos hijos y una clave del padre (paso 3c de las notas)
     private void fusionarHijosEnNodo(Vertice hijoIzq, Vertice hijoDer, int indiceClavePadre, Vertice padre) {
         // Traer la clave del padre al hijo izquierdo
         hijoIzq.llaves[hijoIzq.n] = padre.llaves[indiceClavePadre];
@@ -249,12 +290,12 @@ public class Btree {
         padre.hijos[padre.n + 1] = null;
     }
 
-    // Método para reparar la subocupación (Paso 4 de las notas)
+    // Metodo para reparar la subocupacion (Paso 4 de las notas)
     private void repararSubocupacion(Vertice v) {
         Vertice padre = v.padre;
         if (padre == null) return;
 
-        // Encontrar el índice del hijo v en el padre
+        // Encontrar el indice del hijo v en el padre
         int idxHijo = 0;
         while (idxHijo <= padre.n && padre.hijos[idxHijo] != v) {
             idxHijo++;
@@ -263,7 +304,7 @@ public class Btree {
         Vertice hermanoIzq = (idxHijo > 0) ? padre.hijos[idxHijo - 1] : null;
         Vertice hermanoDer = (idxHijo < padre.n) ? padre.hijos[idxHijo + 1] : null;
 
-        // a) Redistribución con el hermano izquierdo si tiene más de q claves
+        // a) Redistribucion con el hermano izquierdo si tiene mas de q claves
         if (hermanoIzq != null && hermanoIzq.n > q) {
             // Mover espacio en v para la clave que baja del padre
             for (int j = v.n; j > 0; j--) {
@@ -287,7 +328,7 @@ public class Btree {
             v.n++;
             hermanoIzq.n--;
         } 
-        // a) Redistribución con el hermano derecho si tiene más de q claves
+        // a) Redistribucion con el hermano derecho si tiene mas de q claves
         else if (hermanoDer != null && hermanoDer.n > q) {
             v.llaves[v.n] = padre.llaves[idxHijo]; // Baja clave del padre
             padre.llaves[idxHijo] = hermanoDer.llaves[0]; // Sube clave del hermano der
@@ -295,7 +336,7 @@ public class Btree {
             if (!v.esHoja) {
                 v.hijos[v.n + 1] = hermanoDer.hijos[0];
                 if (v.hijos[v.n + 1] != null) v.hijos[v.n + 1].padre = v;
-                
+               
                 // Corregir hijos del hermano derecho
                 for (int j = 0; j < hermanoDer.n; j++) {
                     hermanoDer.hijos[j] = hermanoDer.hijos[j + 1];
@@ -311,7 +352,7 @@ public class Btree {
             v.n++;
             hermanoDer.n--;
         } 
-        // b) Fusión si ningún hermano puede ceder una clave
+        // b) Fusion si ningun hermano puede ceder una clave
         else {
             if (hermanoIzq != null) {
                 fusionarHijosEnNodo(hermanoIzq, v, idxHijo - 1, padre);
@@ -321,13 +362,11 @@ public class Btree {
         }
     }
 
-    public void compartir(){}
-
     public void fusionar(Vertice hermano1, Vertice hermano2, int llavePromovida){
 
         Vertice padre = hermano1.padre;
 
-        if (padre == null){//si es la raiz se crea una nueva con dos hijos
+        if (padre == null){ // si es la raiz se crea una nueva con dos hijos
             Vertice nuevaRaiz = new Vertice(0);
             nuevaRaiz.esHoja = false;
             nuevaRaiz.llaves[0] = llavePromovida;
@@ -338,14 +377,12 @@ public class Btree {
             hermano2.padre = nuevaRaiz;
             raiz = nuevaRaiz;
         }
-        else {
-            // Lógica general de fusión implementada mediante los métodos auxiliares
-        }
+        
     }
 
     public boolean buscar(int n) {
         if (raiz == null) {
-            return false; // Árbol vacío
+            return false; // Arbol vacio
         }
 
         boolean encontrado = false;
@@ -359,9 +396,9 @@ public class Btree {
     }
 
     public Vertice buscar(int n, Vertice v) {
-        // 1. Caso base: si el nodo es nulo (árbol vacío o hijo inexistente)
+        // 1. Caso base: si el nodo es nulo (arbol vacio o hijo inexistente)
         if (v == null) {
-            return null; 
+            return null;
         }
 
         int i = 0;
@@ -370,9 +407,9 @@ public class Btree {
         for (i = 0; i < v.n; i++) {
             // Si encontramos la llave en este nodo
             if (n == v.llaves[i]) {
-                return v; 
-            } 
-            
+                return v;
+            }
+           
             // Si el valor buscado es menor, pertenece al intervalo del hijo i
             if (n < v.llaves[i]) {
                 if (v.esHoja) {
@@ -384,13 +421,50 @@ public class Btree {
         }
 
         // 3. Si 'n' es mayor que TODAS las llaves del nodo:
-        // Debemos revisar el último hijo 
+        // Debemos revisar el ultimo hijo
         if (v.esHoja) {
             return null;
         } else {
-            return buscar(n, v.hijos[i]); // 'i' aquí vale exactamente 'v.n'
+            return buscar(n, v.hijos[i]); // 'i' aqui vale exactamente 'v.n'
         }
     }
 
-    public void imprimir(){}
+    public void imprimir(){
+        if (raiz == null) {
+            System.out.println("Arbol vacio");
+            return;
+        }
+
+        Queue<Vertice> cola = new LinkedList<>();
+        cola.add(raiz);
+        int nivelActual = 0;
+
+        System.out.println("--- Estructura del Arbol B ---");
+
+        while (!cola.isEmpty()) {
+            int nodosEnNivel = cola.size();
+            String[] verticesNivel = new String[nodosEnNivel];
+
+            for (int i = 0; i < nodosEnNivel; i++) {
+                Vertice actual = cola.poll();
+                verticesNivel[i] = actual.toString();
+
+                if (!actual.esHoja) {
+                    for (int j = 0; j <= actual.n; j++) {
+                        if (actual.hijos[j] != null) {
+                            cola.add(actual.hijos[j]);
+                        }
+                    }
+                }
+            }
+
+
+            Level lvl = new Level(verticesNivel);
+            lvl.level = nivelActual;
+            System.out.println(lvl);
+
+            nivelActual++;
+        }
+        System.out.println("------------------------------");
+    }
 }
